@@ -56,15 +56,12 @@ void menu(void)
         }
         strcpy(name,temp->SFN);
         strcpy(extension,temp->extension);
-        size  = READ_32_BITS(temp->size[0],
-                            temp->size[1],
-                            temp->size[2],
-                            temp->size[3]);
+        size  = READ_32_BITS(temp->size[0],temp->size[1],temp->size[2],temp->size[3]);
 
         k = fat_read(option,&entry_head,&buff,&byte_count);
         if(k == 0)
         {
-            printf("Root\n\n");
+            printf("folder: Root\n\n");
             read_dir(entry_head);
             free(buff);
             buff = NULL;
@@ -128,36 +125,17 @@ void read_dir(fat_entry* headTemp)
         year = modified_date(temp->modified_date,'Y');
         hour = (uint8_t)modified_time(temp->modified_time,'h');
         minutes = (uint8_t)modified_time(temp->modified_time,'m');
-        size = READ_32_BITS(temp->size[0],
-                            temp->size[1],
-                            temp->size[2],
-                            temp->size[3]);
+        size = READ_32_BITS(temp->size[0],temp->size[1],temp->size[2],temp->size[3]);
         if(minutes < 10)
         {
             printf("%hhu   -   %8s.%3s        %hhu/%hhu/%hu %hhu:0%hhu               %u",
-            index,
-            temp->SFN,
-            temp->extension,
-            day,
-            month,
-            year,
-            hour,
-            minutes,
-            size);
+            index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
             printf("\n");
         }
         else
         {
             printf("%hhu   -   %8s.%3s        %hhu/%hhu/%hu %hhu:%hhu                %u",
-            index,
-            temp->SFN,
-            temp->extension,
-            day,
-            month,
-            year,
-            hour,
-            minutes,
-            size);
+            index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
             printf("\n");
         }
         index+=1;

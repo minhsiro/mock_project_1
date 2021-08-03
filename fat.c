@@ -112,10 +112,7 @@ static void fat_read_boot_info(void)
     else /* FAT32 */
     {
         data_first_index = fat2_first_index + fat.fat_size;
-        root_first_cluster = READ_32_BITS(boot_info[0x2C],
-                                        boot_info[0x2D],
-                                        boot_info[0x2E],
-                                        boot_info[0x2F]);
+        root_first_cluster = READ_32_BITS(boot_info[0x2C],boot_info[0x2D],boot_info[0x2E],boot_info[0x2F]);
     }
 
     if((fat.total_sectors/fat.sectors_per_cluster) < 4085) /* find total clusters,FAT12 */
@@ -146,17 +143,13 @@ static void fat_read_root(void)
 
     if(end_of_file == fat_EOF_12 || end_of_file == fat_EOF_16)
     {
-        buff_root = (uint8_t*)malloc((sizeof(uint8_t)* \
-                                root_size* \
-                                fat.bytes_per_sector));
+        buff_root = (uint8_t*)malloc((sizeof(uint8_t)*root_size*fat.bytes_per_sector));
         if(buff_root == NULL)
         {
             printf("\nunable to allocate memory");
             exit(EXIT_FAILURE);
         }
-        total_bytes_read = kmc_read_multi_sector(root_first_index,
-                                                root_size,
-                                                buff_root);
+        total_bytes_read = kmc_read_multi_sector(root_first_index,root_size,buff_root);
     }
     else if (end_of_file == fat_EOF_32) // FAT32
     {
@@ -170,61 +163,31 @@ static void fat_read_root(void)
             exit(EXIT_FAILURE);
         }
         kmc_read_multi_sector(fat1_first_index,fat.fat_size,buff_FAT);
-        buff_root = (uint8_t*)malloc(sizeof(uint8_t)* \
-                                    fat.bytes_per_sector* \
-                                    fat.sectors_per_cluster* \
-                                    count);
+        buff_root = (uint8_t*)malloc(sizeof(uint8_t)*fat.bytes_per_sector*fat.sectors_per_cluster*count);
         if(buff_root == NULL)
         {
             printf("\nunable to allocate memory!");
             exit(0);
         }
-        /*
-         *   current_cluster = READ_32_BITS(boot_info[0x2C],
-         *                                   boot_info[0x2D],
-         *                                   boot_info[0x2E],
-         *                                   boot_info[0x2F]);
-         *  first cluster of FAT32 root is usually 2 but not always
-         *  and I don't have a FAT32 image disk to test
-         */
         current_cluster = root_first_cluster;
         fat_index = current_cluster * 4;
-        first_sector = 1 + \
-                    fat.fat_size * 2 + \
-                    (current_cluster-2) * fat.sectors_per_cluster;
-        total_bytes_read = kmc_read_multi_sector(first_sector,
-                                                fat.sectors_per_cluster,
-                                                buff_root);
-        next_cluster = READ_32_BITS(buff_FAT[fat_index],
-                                    buff_FAT[fat_index+1],
-                                    buff_FAT[fat_index+2],
-                                    buff_FAT[fat_index+3]);
+        first_sector = 1 + fat.fat_size * 2 + (current_cluster-2) * fat.sectors_per_cluster;
+        total_bytes_read = kmc_read_multi_sector(first_sector,fat.sectors_per_cluster,buff_root);
+        next_cluster = READ_32_BITS(buff_FAT[fat_index],buff_FAT[fat_index+1],buff_FAT[fat_index+2],buff_FAT[fat_index+3]);
         while(next_cluster != end_of_file)
         {
             count += 1;
             current_cluster = next_cluster;
-            fat_index = current_cluster*4;
-            first_sector = 1 + \
-                        fat.fat_size * 2 + \
-                        (current_cluster-2) * fat.sectors_per_cluster;
-            buff_root = realloc(buff_root,sizeof(uint8_t)* \
-                        fat.bytes_per_sector* \
-                        fat.sectors_per_cluster* \
-                        count);
+            fat_index = current_cluster * 4;
+            first_sector = 1 + fat.fat_size * 2 + (current_cluster-2) * fat.sectors_per_cluster;
+            buff_root = realloc(buff_root,sizeof(uint8_t)*fat.bytes_per_sector*fat.sectors_per_cluster*count);
             if(buff_root == NULL)
             {
                 printf("\nunable to allocate memory!");
                 exit(EXIT_FAILURE);
             }
-            total_bytes_read += kmc_read_multi_sector(
-                                first_sector,
-                                fat.sectors_per_cluster,
-                                buff_root + \
-                                fat.bytes_per_sector*fat.sectors_per_cluster);
-            next_cluster = READ_32_BITS(buff_FAT[fat_index],
-                                        buff_FAT[fat_index+1],
-                                        buff_FAT[fat_index+2],
-                                        buff_FAT[fat_index+3]);
+            total_bytes_read += kmc_read_multi_sector(first_sector,fat.sectors_per_cluster,buff_root + fat.bytes_per_sector*fat.sectors_per_cluster);
+            next_cluster = READ_32_BITS(buff_FAT[fat_index],buff_FAT[fat_index+1],buff_FAT[fat_index+2],buff_FAT[fat_index+3]);
         }
     }
     fat_read_entries(buff_root,total_bytes_read);
@@ -320,8 +283,7 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
     {
         temp = temp->next;
     }
-    current_cluster = READ_16_BITS(temp->first_cluster_fat12_fat16[0],
-                                    temp->first_cluster_fat12_fat16[1]);
+    current_cluster = READ_16_BITS(temp->first_cluster_fat12_fat16[0],temp->first_cluster_fat12_fat16[1]);
     if(current_cluster == root_first_cluster)
     {
         fat_read_root();
@@ -330,117 +292,78 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
     }
     else
     {
-        buff_FAT = (uint8_t*)malloc(sizeof(uint8_t)* \
-                                    fat.bytes_per_sector* \
-                                    fat.sectors_per_cluster* \
-                                    fat.fat_size);
+        buff_FAT = (uint8_t*)malloc(sizeof(uint8_t)*fat.bytes_per_sector*fat.sectors_per_cluster*fat.fat_size);
         if(buff_FAT == NULL)
         {
             printf("\nunable to allocate memory!");
             exit(EXIT_FAILURE);
         }
         kmc_read_multi_sector(fat1_first_index,fat.fat_size,buff_FAT);
-        buff = (uint8_t*)malloc(sizeof(uint8_t)* \
-                                    fat.bytes_per_sector* \
-                                    fat.sectors_per_cluster* \
-                                    count);
+        buff = (uint8_t*)malloc(sizeof(uint8_t)*fat.bytes_per_sector*fat.sectors_per_cluster*count);
         if(buff == NULL)
         {
             printf("\nunable to allocate memory!");
             exit(0);
         }
         /*
-        * read next cluster according to FAT12 or FAT 16 or FAT 32
-        */
+         * read next cluster according to FAT12 or FAT 16 or FAT 32
+         */
         if(end_of_file == fat_EOF_12)
         {
             fat_index = current_cluster * 1.5;
-            first_sector = 1 + \
-                            fat.fat_size * 2 + \
-                            root_size + \
-                            (current_cluster-2) * fat.sectors_per_cluster;
+            first_sector = 1 + fat.fat_size * 2 + root_size + (current_cluster-2) * fat.sectors_per_cluster;
             if((current_cluster % 2) == 0)
             {
-                next_cluster = READ_12_BITS_EVEN(buff_FAT[fat_index],
-                                                buff_FAT[fat_index+1]);
+                next_cluster = READ_12_BITS_EVEN(buff_FAT[fat_index],buff_FAT[fat_index+1]);
             }
             else if ((current_cluster % 2) != 0)
             {
-                next_cluster = READ_12_BITS_ODD(buff_FAT[fat_index],
-                                                buff_FAT[fat_index+1]);
+                next_cluster = READ_12_BITS_ODD(buff_FAT[fat_index],buff_FAT[fat_index+1]);
             } 
         }
         else if (end_of_file == fat_EOF_16)
         {
             fat_index = current_cluster * 2;
-            first_sector = 1 + \
-                            fat.fat_size * 2 + \
-                            root_size + \
-                            (current_cluster-2) * fat.sectors_per_cluster;
-            next_cluster = READ_16_BITS(buff_FAT[fat_index],
-                                        buff_FAT[fat_index+1]);
+            first_sector = 1 + fat.fat_size * 2 + root_size + (current_cluster-2) * fat.sectors_per_cluster;
+            next_cluster = READ_16_BITS(buff_FAT[fat_index],buff_FAT[fat_index+1]);
         }
         else if (end_of_file == fat_EOF_32)
         {
             fat_index = current_cluster * 4;
-            first_sector = 1 + \
-                            fat.fat_size * 2 + \
-                            (current_cluster-2) * fat.sectors_per_cluster; // no root
-            next_cluster = READ_32_BITS(buff_FAT[fat_index],
-                                        buff_FAT[fat_index+1],
-                                        buff_FAT[fat_index+2],
-                                        buff_FAT[fat_index+3]);
+            first_sector = 1 + fat.fat_size * 2 + (current_cluster-2) * fat.sectors_per_cluster; // no root
+            next_cluster = READ_32_BITS(buff_FAT[fat_index],buff_FAT[fat_index+1],buff_FAT[fat_index+2],buff_FAT[fat_index+3]);
         }
-        total_bytes_read = kmc_read_multi_sector(first_sector,
-                                                fat.sectors_per_cluster,
-                                                buff);
+        total_bytes_read = kmc_read_multi_sector(first_sector,fat.sectors_per_cluster,buff);
         while(next_cluster != end_of_file)
         {
             count += 1;
             current_cluster = next_cluster;
-            fat_index = current_cluster*1.5;
-            first_sector = 1 + \
-                        fat.fat_size * 2 + \
-                        root_size + \
-                        (current_cluster-2)* \
-                        fat.sectors_per_cluster;
-            buff = realloc(buff,sizeof(uint8_t)* \
-                        fat.bytes_per_sector* \
-                        fat.sectors_per_cluster* \
-                        count);
-            total_bytes_read += kmc_read_multi_sector(
-                                first_sector,
-                                fat.sectors_per_cluster,
-                                buff + \
-                                fat.bytes_per_sector*fat.sectors_per_cluster);
+            fat_index = current_cluster * 1.5;
+            first_sector = 1 + fat.fat_size * 2 + root_size + (current_cluster-2) * fat.sectors_per_cluster;
+            buff = realloc(buff,sizeof(uint8_t)*fat.bytes_per_sector*fat.sectors_per_cluster*count);
+            total_bytes_read += kmc_read_multi_sector(first_sector,fat.sectors_per_cluster,buff + fat.bytes_per_sector*fat.sectors_per_cluster);
 
             /*
-            * read next cluster according to FAT12 or FAT 16 or FAT 32
-            */
+             * read next cluster according to FAT12 or FAT 16 or FAT 32
+             */
             if(end_of_file == fat_EOF_12)
             {
                 if((current_cluster % 2) == 0)
                 {
-                    next_cluster = READ_12_BITS_EVEN(buff_FAT[fat_index],
-                                                    buff_FAT[fat_index+1]);
+                    next_cluster = READ_12_BITS_EVEN(buff_FAT[fat_index],buff_FAT[fat_index+1]);
                 }
                 else if ((current_cluster % 2) != 0)
                 {
-                    next_cluster = READ_12_BITS_ODD(buff_FAT[fat_index],
-                                                    buff_FAT[fat_index+1]);
+                    next_cluster = READ_12_BITS_ODD(buff_FAT[fat_index],buff_FAT[fat_index+1]);
                 } 
             }
             else if (end_of_file == fat_EOF_16)
             {
-                next_cluster = READ_16_BITS(buff_FAT[fat_index],
-                                            buff_FAT[fat_index+1]);
+                next_cluster = READ_16_BITS(buff_FAT[fat_index],buff_FAT[fat_index+1]);
             }
             else if (end_of_file == fat_EOF_32)
             {
-                next_cluster = READ_32_BITS(buff_FAT[fat_index],
-                                            buff_FAT[fat_index+1],
-                                            buff_FAT[fat_index+2],
-                                            buff_FAT[fat_index+3]);
+                next_cluster = READ_32_BITS(buff_FAT[fat_index],buff_FAT[fat_index+1],buff_FAT[fat_index+2],buff_FAT[fat_index+3]);
             }
         }
         if(temp->attribute == 0x10)
