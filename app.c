@@ -22,6 +22,7 @@ void menu(void)
 {
     uint8_t name[9];
     uint8_t extension[4];
+    uint32_t size = 0;
     uint8_t* buff = NULL;
     fat_entry* entry_head = NULL;
     fat_entry* temp = NULL;
@@ -55,6 +56,10 @@ void menu(void)
         }
         strcpy(name,temp->SFN);
         strcpy(extension,temp->extension);
+        size  = READ_32_BITS(temp->size[0],
+                            temp->size[1],
+                            temp->size[2],
+                            temp->size[3]);
 
         k = fat_read(option,&entry_head,&buff,&byte_count);
         if(k == 0)

@@ -16,17 +16,17 @@
 
 typedef struct
 {
-    uint8_t jump[3];
-    uint8_t name[8];
-    uint16_t bytes_per_sector;
-    uint8_t sectors_per_cluster;
-    uint16_t size_of_reserved_area;
-    uint8_t numbers_of_fats;
-    uint16_t max_root_entries;
-    uint16_t total_sectors;
-    uint16_t fat_size;
-    uint8_t label_type[8];
-    uint8_t signature[2];
+    uint8_t jump[3]; // 0-2 (0x00-0x02)
+    uint8_t name[8]; // 3-10 
+    uint16_t bytes_per_sector; // 11-12
+    uint8_t sectors_per_cluster; // 13
+    uint16_t size_of_reserved_area; //14-15
+    uint8_t numbers_of_fats; // 16
+    uint16_t max_root_entries; // 17-18
+    uint16_t total_sectors; //19-20
+    uint8_t media_type;  // 21
+    uint16_t fat_size; // 22-23
+    uint8_t signature[2]; // 510-511
 } fat_boot_info_struct_t;
 
 enum fat_EOF
@@ -42,8 +42,7 @@ enum fat_EOF
 static void fat_read_boot_info(void);
 static void fat_read_root();
 static void fat_read_entries(uint8_t* buff,uint32_t bytes_count);
-static void free_entries(fat_entry** head_temp);
-bool fat_read_option(uint32_t option,fat_entry** headTemp);
+static void fat_free_entries(fat_entry** head_temp);
 
 /*******************************************************************************
 * Variables
@@ -53,6 +52,7 @@ static uint32_t boot_first_index = 0;
 static uint32_t fat1_first_index = 0;
 static uint32_t fat2_first_index = 0;
 static uint32_t root_first_index = 0; // fat12 and fat16 only
+static uint32_t root_first_cluster = 0; // fat12/16(0) - fat32(usually 2)
 static uint32_t data_first_index = 0;
 static uint32_t root_size = 0; // in sectors
 static uint32_t end_of_file = 0;
@@ -90,14 +90,14 @@ static void fat_read_boot_info(void)
     fat.max_root_entries = READ_16_BITS(boot_info[0x11],boot_info[0x12]);
     fat.total_sectors = READ_16_BITS(boot_info[0x013],boot_info[0x14]);
     fat.fat_size = READ_16_BITS(boot_info[0x016],boot_info[0x17]);
-    if(fat.max_root_entries != 0) /* FAT12/16 */
-    {
-        strncpy(fat.label_type,boot_info+0x36,8);
-    }
-    else /* FAT32 */
-    {
-        strncpy(fat.label_type,boot_info+0x52,8);
-    }
+    // if(fat.max_root_entries != 0) /* FAT12/16 */
+    // {
+    //     strncpy(fat.label_type,boot_info+0x36,8);
+    // }
+    // else /* FAT32 */
+    // {
+    //     strncpy(fat.label_type,boot_info+0x52,8);
+    // }
     kmc_update_sector_size(fat.bytes_per_sector); /***** update sector size in HAL.c file *****/
     fat1_first_index = boot_first_index + 1;
     fat2_first_index = fat1_first_index + fat.fat_size;
@@ -106,11 +106,18 @@ static void fat_read_boot_info(void)
         root_first_index = fat2_first_index + fat.fat_size;
         root_size = (32*fat.max_root_entries)/fat.bytes_per_sector;
         data_first_index = root_first_index + root_size;
+
+        root_first_cluster = 0;
     }
     else /* FAT32 */
     {
         data_first_index = fat2_first_index + fat.fat_size;
+        root_first_cluster = READ_32_BITS(boot_info[0x2C],
+                                        boot_info[0x2D],
+                                        boot_info[0x2E],
+                                        boot_info[0x2F]);
     }
+
     if((fat.total_sectors/fat.sectors_per_cluster) < 4085) /* find total clusters,FAT12 */
     {
         end_of_file = fat_EOF_12;
@@ -180,7 +187,7 @@ static void fat_read_root(void)
          *  first cluster of FAT32 root is usually 2 but not always
          *  and I don't have a FAT32 image disk to test
          */
-        current_cluster = 2;
+        current_cluster = root_first_cluster;
         fat_index = current_cluster * 4;
         first_sector = 1 + \
                     fat.fat_size * 2 + \
@@ -234,7 +241,7 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
     uint8_t k = 0;
     linked_list_count = 0;
 
-    free_entries(&entry_head);
+    fat_free_entries(&entry_head);
     while(i<bytes_count)
     {
         if(buff[i] != 0x00) /* empty entry */
@@ -307,13 +314,15 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
     uint16_t first_sector = 0;
     uint32_t count = 1;
     uint32_t total_bytes_read = 0;
-    fat_entry* temp_val = entry_head;
+    fat_entry* temp = entry_head;
 
     for(i=0;i<option;i++)
     {
-        temp_val = temp_val->next;
+        temp = temp->next;
     }
-    if(READ_16_BITS(temp_val->first_cluster_fat12_fat16[0],temp_val->first_cluster_fat12_fat16[1]) == 0 || fat.max_root_entries == 0)
+    current_cluster = READ_16_BITS(temp->first_cluster_fat12_fat16[0],
+                                    temp->first_cluster_fat12_fat16[1]);
+    if(current_cluster == root_first_cluster)
     {
         fat_read_root();
         *headTemp = entry_head;
@@ -340,8 +349,6 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
             printf("\nunable to allocate memory!");
             exit(0);
         }
-        current_cluster = READ_16_BITS(temp_val->first_cluster_fat12_fat16[0],
-                                        temp_val->first_cluster_fat12_fat16[1]);
         /*
         * read next cluster according to FAT12 or FAT 16 or FAT 32
         */
@@ -436,12 +443,12 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
                                             buff_FAT[fat_index+3]);
             }
         }
-        if(temp_val->attribute == 0x10)
+        if(temp->attribute == 0x10)
         {
             fat_read_entries(buff,total_bytes_read);
             retValue = 1;
         }
-        else if (temp_val->attribute == 0x00)
+        else if (temp->attribute == 0x00)
         {
             *byte_count = total_bytes_read;
             retValue = 2;
@@ -457,7 +464,7 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
     return retValue;
 }
 
-static void free_entries(fat_entry** head_temp)
+static void fat_free_entries(fat_entry** head_temp)
 {
     fat_entry* current = *head_temp;
     fat_entry* next = NULL;
