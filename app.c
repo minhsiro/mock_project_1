@@ -73,7 +73,7 @@ void menu(void)
         }
         else if (k == 2)
         {
-            printf("file: %s.%s\n\n",name,extension);
+            printf("file: %8s.%3s\n\n",name,extension);
             read_file(buff,byte_count);
             free(buff);
             buff = NULL;
@@ -96,7 +96,7 @@ static void clear(){
 static void read_file(uint8_t* buff,uint32_t byte_count)
 {
     uint16_t i = 0;
-    for(i = 0; i < byte_count;i++)
+    for(i = 0;i < byte_count;i++)
     {
         if( (i >= 16) && (i % 16 == 0))
         {
@@ -128,13 +128,13 @@ static void read_dir(fat_entry* headTemp)
         size = READ_32_BITS(temp->size[0],temp->size[1],temp->size[2],temp->size[3]);
         if(minutes < 10)
         {
-            printf("%hhu   -   %8s.%3s        %hhu/%hhu/%hu %hhu:0%hhu               %u",
+            printf("%hhu   -   %8s.%3s        %hhu/%hhu/%hu %hhu:0%hhu               %u", \
             index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
             printf("\n");
         }
         else
         {
-            printf("%hhu   -   %8s.%3s        %hhu/%hhu/%hu %hhu:%hhu                %u",
+            printf("%hhu   -   %8s.%3s        %hhu/%hhu/%hu %hhu:%hhu                %u", \
             index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
             printf("\n");
         }
@@ -151,7 +151,7 @@ static uint16_t modified_time(uint8_t* time,uint8_t option)
 
     if(option == 'm')
     {
-        for(i=5; i<=10; i++)
+        for(i = 5;i <= 10;i++)
         {
             ret_value |= 1<<i;
         }
@@ -159,7 +159,7 @@ static uint16_t modified_time(uint8_t* time,uint8_t option)
     }
     else if (option == 'h')
     {          
-        for(i=11; i<=15; i++)
+        for(i = 11;i <= 15;i++)
         {
             ret_value |= 1<<i;
         }
@@ -176,7 +176,7 @@ static uint16_t modified_date(uint8_t* date,uint8_t option)
 
     if(option == 'D')
     {
-        for(i=0;i<=4;i++)
+        for(i = 0;i <= 4;i++)
         {
             ret_value |= 1<<i;
         }
@@ -184,7 +184,7 @@ static uint16_t modified_date(uint8_t* date,uint8_t option)
     }
     else if (option == 'M')
     {          
-        for(i=5;i<=8;i++)
+        for(i = 5;i <= 8;i++)
         {
             ret_value |= 1<<i;
         }
@@ -192,7 +192,7 @@ static uint16_t modified_date(uint8_t* date,uint8_t option)
     }
     else if (option == 'Y')
     {          
-        for(i=9;i<=15;i++)
+        for(i = 9;i <= 15;i++)
         {
             ret_value |= 1<<i;
         }

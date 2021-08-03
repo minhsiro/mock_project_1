@@ -26,6 +26,9 @@ typedef struct
     uint16_t total_sectors;                 /* 0x13-0x14 (19-20)        */
     uint8_t media_type;                     /* 0x15 (21)                */
     uint16_t fat_size;                      /* 0x16-0x17 (22-23)        */
+    uint16_t track_size;                    /* 0x18-0x19 (24-25)        */
+    uint16_t number_of_heads;               /* 0x1A-0x1B (26-27)        */
+    uint16_t number_of_hidden_sectors;      /* 0x1C-0x1D (28-29)        */
     uint8_t signature[2];                   /* 0x1FE-0x1FF (510-511)    */
 } fat_boot_info_struct_t;
 
@@ -51,10 +54,10 @@ static uint8_t boot_info[512];
 static uint32_t boot_first_index = 0;
 static uint32_t fat1_first_index = 0;
 static uint32_t fat2_first_index = 0;
-static uint32_t root_first_index = 0;           /* fat12 and fat16 only                                 */
-static uint32_t root_first_cluster = 0;         /* fat12/16(0) - fat32(usually 2)                       */
+static uint32_t root_first_index = 0;           /* FAT12/FAT16 only                                */
+static uint32_t root_first_cluster = 0;         /* 0 for FAT12/FAT16 - 2 for FAT32(but not always) */
 static uint32_t data_first_index = 0;
-static uint32_t root_size = 0;                  /* number of sectors in root area (FAT12/FAT16 only)    */
+static uint32_t root_size = 0;                  /* number of sectors in root (FAT12/FAT16 only)    */
 static uint32_t end_of_file = 0;
 static fat_boot_info_struct_t fat;
 fat_entry* entry_head = NULL;
@@ -82,18 +85,17 @@ static void fat_read_boot_info(void)
 {
     kmc_read_sector(boot_first_index,&boot_info[0]);
     strncpy(fat.name,boot_info+3,8);
-    fat.bytes_per_sector = READ_16_BITS(boot_info[0x0b],boot_info[0x0c]);
-    fat.sectors_per_cluster = boot_info[0x0d];
-    fat.size_of_reserved_area = READ_16_BITS(boot_info[0x0e],boot_info[0x0f]);
+    fat.bytes_per_sector = READ_16_BITS(boot_info[0x0B],boot_info[0x0C]);
+    fat.sectors_per_cluster = boot_info[0x0D];
+    fat.size_of_reserved_area = READ_16_BITS(boot_info[0x0E],boot_info[0x0F]);
     fat.numbers_of_fats = boot_info[0x10];
     fat.max_root_entries = READ_16_BITS(boot_info[0x11],boot_info[0x12]);
     fat.total_sectors = READ_16_BITS(boot_info[0x013],boot_info[0x14]);
     fat.fat_size = READ_16_BITS(boot_info[0x016],boot_info[0x17]);
 
-    /*
-     *  update sector size in HAL.c
-     */
-    kmc_update_sector_size(fat.bytes_per_sector); 
+    /* update sector size in HAL.c */
+    kmc_update_sector_size(fat.bytes_per_sector);
+
     fat1_first_index = boot_first_index + 1;
     fat2_first_index = fat1_first_index + fat.fat_size;
     if(fat.max_root_entries != 0) /* FAT12/16 */
@@ -195,7 +197,7 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
     uint8_t k = 0;
 
     fat_free_entries(&entry_head);
-    while(i<bytes_count)
+    while(i < bytes_count)
     {
         if(buff[i] != 0x00) /* empty entry */
         {
@@ -219,31 +221,30 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
                 }
                 temp->next = new_entry;
             }
-            if(buff[i+0x0B] == 0x0F) /* long filename */
+            if(buff[i + 0x0B] == 0x0F) /* long filename */
             {
                 j = i;
                 strcpy(new_entry->LFN,""); // new_entry->LFN == temp->LFN => you are fucked
-                while(buff[j+0x0B] == 0x0F)
+                while(buff[j + 0x0B] == 0x0F)
                 {
                     // do something
                     j += 32; /* need more 32 bytes for info */
                 }
                 i = j; /*condition*/
             }
-            if (buff[i+0x0B] != 0x0F)
+            if (buff[i + 0x0B] != 0x0F)
             {
-                strncpy(new_entry->SFN,&buff[i+0x00],8);
+                strncpy(new_entry->SFN,&buff[i + 0x00],8);
                 new_entry->SFN[8] = '\0';
                 strncpy(new_entry->extension,&buff[i+0x08],3);
                 new_entry->extension[3] = '\0';
-                new_entry->attribute = buff[i+0x0b];
-                strncpy(new_entry->high_first_cluster,&buff[i+0x14],2);
-                strncpy(new_entry->modified_time,&buff[i+0x16],2);
-                strncpy(new_entry->modified_date,&buff[i+0x18],2);
-                strncpy(new_entry->low_first_cluster,&buff[i+0x1A],2);
-                /*
-                 * strncpy(new_entry->size,&buff[i+0x1C],4); => undefined behavior
-                 */
+                new_entry->attribute = buff[i + 0x0b];
+                strncpy(new_entry->high_first_cluster,&buff[i + 0x14],2);
+                strncpy(new_entry->modified_time,&buff[i + 0x16],2);
+                strncpy(new_entry->modified_date,&buff[i + 0x18],2);
+                strncpy(new_entry->low_first_cluster,&buff[i + 0x1A],2);
+
+                /* don't use "strncpy(new_entry->size,&buff[i+0x1C],4);" here, it will cause undefined behavior */
                 new_entry->size[0] = buff[i + 0x1C];
                 new_entry->size[1] = buff[i + 0x1D];
                 new_entry->size[2] = buff[i + 0x1E];
@@ -268,7 +269,7 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
     uint32_t total_bytes_read = 0;
     fat_entry* temp = entry_head;
 
-    for(i=0;i<option;i++)
+    for(i = 0;i < option;i++)
     {
         temp = temp->next;
     }
