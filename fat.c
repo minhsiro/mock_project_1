@@ -51,12 +51,11 @@ static uint8_t boot_info[512];
 static uint32_t boot_first_index = 0;
 static uint32_t fat1_first_index = 0;
 static uint32_t fat2_first_index = 0;
-static uint32_t root_first_index = 0; // fat12 and fat16 only
-static uint32_t root_first_cluster = 0; // fat12/16(0) - fat32(usually 2)
+static uint32_t root_first_index = 0;           /* fat12 and fat16 only                                 */
+static uint32_t root_first_cluster = 0;         /* fat12/16(0) - fat32(usually 2)                       */
 static uint32_t data_first_index = 0;
-static uint32_t root_size = 0; // in sectors
+static uint32_t root_size = 0;                  /* number of sectors in root area (FAT12/FAT16 only)    */
 static uint32_t end_of_file = 0;
-static uint32_t linked_list_count = 0;
 static fat_boot_info_struct_t fat;
 fat_entry* entry_head = NULL;
 
@@ -194,7 +193,6 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
     fat_entry* temp = NULL;
     fat_entry* new_entry = NULL;
     uint8_t k = 0;
-    linked_list_count = 0;
 
     fat_free_entries(&entry_head);
     while(i<bytes_count)
@@ -221,7 +219,6 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
                 }
                 temp->next = new_entry;
             }
-            linked_list_count += 1;
             if(buff[i+0x0B] == 0x0F) /* long filename */
             {
                 j = i;
