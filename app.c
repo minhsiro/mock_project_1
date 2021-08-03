@@ -108,12 +108,12 @@ static void read_file(uint8_t* buff,uint32_t byte_count)
 }
 static void read_dir(fat_entry* headTemp)
 {
-    uint8_t index = 0;
-    uint8_t day = 0;
-    uint8_t month = 0;
+    uint16_t index = 0;
+    uint16_t day = 0;
+    uint16_t month = 0;
     uint16_t year = 0;
-    uint8_t hour = 0;
-    uint8_t minutes = 0;
+    uint16_t hour = 0;
+    uint16_t minutes = 0;
     uint32_t size = 0;
     fat_entry* temp = headTemp;
 
@@ -126,15 +126,30 @@ static void read_dir(fat_entry* headTemp)
         hour = (uint8_t)modified_time(temp->modified_time,'h');
         minutes = (uint8_t)modified_time(temp->modified_time,'m');
         size = READ_32_BITS(temp->size[0],temp->size[1],temp->size[2],temp->size[3]);
-        if(minutes < 10)
+        if(minutes < 10 || hour < 10)
         {
-            printf("%hhu   -   %8s.%3s        %hhu/%hhu/%hu %hhu:0%hhu               %u", \
-            index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
-            printf("\n");
+            if(minutes < 10 && hour < 10)
+            {
+                printf("%hhu   -   %8s.%3s        %hu/%hu/%hu 0%hu:0%hu               %u", \
+                index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
+                printf("\n");
+            }
+            else if (hour < 10)
+            {
+                printf("%hhu   -   %8s.%3s        %hu/%hu/%hu 0%hu:%hu               %u", \
+                index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
+                printf("\n");
+            }
+            else if (minutes < 10)
+            {
+                printf("%hhu   -   %8s.%3s        %hu/%hu/%hu %hu:0%hu               %u", \
+                index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
+                printf("\n");
+            }
         }
         else
         {
-            printf("%hhu   -   %8s.%3s        %hhu/%hhu/%hu %hhu:%hhu                %u", \
+            printf("%hhu   -   %8s.%3s        %hu/%hu/%hu %hu:%hu                %u", \
             index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
             printf("\n");
         }

@@ -192,14 +192,18 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
 {
     uint32_t i = 0;
     uint32_t j = 0;
+    uint8_t k = 0;
+    uint8_t LFN_entries = 0;
     fat_entry* temp = NULL;
     fat_entry* new_entry = NULL;
-    uint8_t k = 0;
-
     fat_free_entries(&entry_head);
     while(i < bytes_count)
     {
-        if(buff[i] != 0x00) /* empty entry */
+        if(buff[i] == 0x00 || buff[i] == 0xE5) /* empty entry or deleted entry */
+        {
+            /* just check, don't do anything */
+        }
+        else
         {
             new_entry = (fat_entry*)malloc(sizeof(fat_entry));
             if(new_entry == NULL)
@@ -221,29 +225,69 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
                 }
                 temp->next = new_entry;
             }
+            strcpy(new_entry->LFN,""); // new_entry->LFN == temp->LFN => you are fucked. If you put inside, you are fucked too.
             if(buff[i + 0x0B] == 0x0F) /* long filename */
             {
                 j = i;
-                strcpy(new_entry->LFN,""); // new_entry->LFN == temp->LFN => you are fucked
-                while(buff[j + 0x0B] == 0x0F)
+                LFN_entries = buff[j] & 0x1F;
+                i = i + LFN_entries * 32;
+                while(LFN_entries > 0)
                 {
-                    // do something
-                    j += 32; /* need more 32 bytes for info */
+                    for(k = 0x01;k < 0x0A;k++)
+                    {
+                        if((buff[j + (LFN_entries - 1)*32 + k] == 0x00) || (buff[j + (LFN_entries - 1)*32 + k] == 0xFF))
+                        {
+                            /* just check, don't do anything */
+                        }
+                        else
+                        {
+                            strncat(new_entry->LFN,&buff[j + (LFN_entries - 1)*32 + k],1);
+                        }
+                    }
+
+                    for(k = 0x0E;k < 0x19;k++)
+                    {
+                        if((buff[j + (LFN_entries - 1)*32 + k] == 0x00) || (buff[j + (LFN_entries - 1)*32 + k] == 0xFF))
+                        {
+                            /* just check, don't do anything */
+                        }
+                        else
+                        {
+                            strncat(new_entry->LFN,&buff[j + (LFN_entries - 1)*32 + k],1);
+                        }
+                    }
+
+                    for(k = 0x1C;k < 0x1F;k++)
+                    {
+                        if((buff[j + (LFN_entries - 1)*32 + k] == 0x00) || (buff[j + (LFN_entries - 1)*32 + k] == 0xFF))
+                        {
+                            /* just check, don't do anything */
+                        }
+                        else
+                        {
+                            strncat(new_entry->LFN,&buff[j + (LFN_entries - 1)*32 + k],1);
+                        }
+                    }
+                    LFN_entries = LFN_entries - 1;
                 }
-                i = j; /*condition*/
             }
+
             if (buff[i + 0x0B] != 0x0F)
             {
                 strncpy(new_entry->SFN,&buff[i + 0x00],8);
                 new_entry->SFN[8] = '\0';
                 strncpy(new_entry->extension,&buff[i+0x08],3);
                 new_entry->extension[3] = '\0';
+                if(strcmp(new_entry->LFN,"") == 0)
+                {
+                    strncpy(new_entry->LFN,new_entry->SFN,8);
+                    new_entry->LFN[8] = '\0';
+                }
                 new_entry->attribute = buff[i + 0x0b];
                 strncpy(new_entry->high_first_cluster,&buff[i + 0x14],2);
                 strncpy(new_entry->modified_time,&buff[i + 0x16],2);
                 strncpy(new_entry->modified_date,&buff[i + 0x18],2);
                 strncpy(new_entry->low_first_cluster,&buff[i + 0x1A],2);
-
                 /* don't use "strncpy(new_entry->size,&buff[i+0x1C],4);" here, it will cause undefined behavior */
                 new_entry->size[0] = buff[i + 0x1C];
                 new_entry->size[1] = buff[i + 0x1D];
@@ -294,11 +338,10 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
         if(buff == NULL)
         {
             printf("\nunable to allocate memory!");
-            exit(0);
+            exit(EXIT_FAILURE);
         }
-        /*
-         * read next cluster according to FAT12 or FAT 16 or FAT 32
-         */
+
+        /* read next cluster according to FAT12 or FAT 16 or FAT 32 */
         if(end_of_file == fat_EOF_12)
         {
             fat_index = current_cluster * 1.5;
@@ -310,7 +353,7 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
             else if ((current_cluster % 2) != 0)
             {
                 next_cluster = READ_12_BITS_ODD(buff_FAT[fat_index],buff_FAT[fat_index+1]);
-            } 
+            }
         }
         else if (end_of_file == fat_EOF_16)
         {
