@@ -1,0 +1,56 @@
+https://www.win.tue.nl/~aeb/linux/fs/fat/fat-1.html#ss1.1
+http://ntfs.com/fat-boot-modif.htm
+http://www.c-jump.com/CIS24/Slides/FAT/lecture.html
+https://vi.wikipedia.org/wiki/ASCII
+https://www.win.tue.nl/~aeb/linux/fs/fat/fat-1.html
+https://www.pjrc.com/tech/8051/ide/fat32.html
+https://stackoverflow.com/questions/8011700/how-do-i-extract-specific-n-bits-of-a-32-bit-unsigned-integer-in-c
+https://www.geeksforgeeks.org/write-a-function-to-delete-a-linked-list/
+https://www.programiz.com/dsa/linked-list-operations
+https://www.codeguru.com/cpp/cpp/cpp_mfc/files/article.php/c13907/Long-File-Name-LFN-Entries-in-the-FAT-Root-Directory-of-Floppy-Disks.htm
+http://www.fandecheng.com/personal/interests/ewindows/nuhelp/lfnspec.htm
+https://stackoverflow.com/questions/8107826/proper-way-to-empty-a-c-string
+https://forum.osdev.org/viewtopic.php?f=13&t=26373
+https://stackoverflow.com/questions/8177451/fat12-fat16-what-determines-the-sector-counts
+https://eric-lo.gitbook.io/lab9-filesystem/overview-of-fat32
+
+layout
+1. Reserved sectors gồm boot sector, FS info sector (FAT32 only)
+2. FAT Region: file allocation table #1, #2++ optional
+3. Root Directory Region: root directory (FAT12 and FAT 16 only)
+4. Data Region : for files and directories
+
+detailed explanation
+http://ntfs.com/fat_systems.htm
+https://www.slideshare.net/vutsang9/bai03-he-thong-tap-tin-fat
+https://codeandlife.com/2012/04/02/simple-fat-and-sd-tutorial-part-1/
+
+FAT directory entry and cluster chain
+https://www.youtube.com/watch?v=c9d3gEIo3Dk
+
+fat overview
+http://www.c-jump.com/CIS24/Slides/FAT/lecture.html
+
+volume
+
+cluster
+
+DWORD = 4 words
+
+FAT boot sector  - FAT1 - FAT2 - root folder -  other folders and files
+
+
+FAT folder structure
+- Name (eight-plus-three characters) 11 bytes
+- Attribute byte (8 bits worth of information) 1 byte
+- Create time (24 bits) 3 bytes
+- Create date (16 bits) 2 bytes
+- Last access date (16 bits) 2 bytes
+- Last modified time (16 bits) 2 bytes
+- Last modified date (16 bits) 2 bytes
+- Starting cluster number in the file allocation table (16 bits)2 bytes
+- File size (32 bits) 4 bytes
+meta data
+
+data cluster
+https://en.wikipedia.org/wiki/Data_cluster
