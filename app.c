@@ -15,8 +15,6 @@
 static void clear();
 static void read_dir(fat_entry* headTemp);
 static void read_file(uint8_t* buff,uint32_t size);
-static uint16_t modified_date(uint8_t* date,uint8_t option);
-static uint16_t modified_time(uint8_t* time,uint8_t option);
 
 void menu(void)
 {
@@ -63,8 +61,8 @@ void menu(void)
         {
             printf("folder: Root\n\n");
             read_dir(entry_head);
-            // free(buff);
-            // buff = NULL;
+            free(buff);
+            buff = NULL;
         }
         else if (k == FAT_SUB_DIR)
         {
@@ -78,7 +76,9 @@ void menu(void)
             printf("file: %8s.%3s\n\n",name,extension);
             read_file(buff,size);
             free(buff);
+            free(entry_head);
             buff = NULL;
+            entry_head = NULL;
             condition = false;
         }
         
@@ -122,11 +122,11 @@ static void read_dir(fat_entry* headTemp)
     printf("No      Name                  date & time                 size\n");
     while(temp != NULL)
     {
-        day = modified_date(temp->modified_date,'D');
-        month = modified_date(temp->modified_date,'M');
-        year = modified_date(temp->modified_date,'Y');
-        hour = (uint8_t)modified_time(temp->modified_time,'h');
-        minutes = (uint8_t)modified_time(temp->modified_time,'m');
+        day = DATE_DAY(READ_16_BITS(temp->modified_date[0],temp->modified_date[1]));
+        month = DATE_MONTH(READ_16_BITS(temp->modified_date[0],temp->modified_date[1]));
+        year = DATE_YEAR(READ_16_BITS(temp->modified_date[0],temp->modified_date[1]));
+        hour = TIME_HOUR(READ_16_BITS(temp->modified_time[0],temp->modified_time[1]));
+        minutes = TIME_MINUTE(READ_16_BITS(temp->modified_time[0],temp->modified_time[1]));
         size = READ_32_BITS(temp->size[0],temp->size[1],temp->size[2],temp->size[3]);
         if(minutes < 10 || hour < 10)
         {
@@ -156,71 +156,4 @@ static void read_dir(fat_entry* headTemp)
         index+=1;
         temp = temp->next;
     }
-}
-
-static uint16_t modified_time(uint8_t* time,uint8_t option)
-{
-    uint8_t i = 0;
-    uint16_t ret_value = 0;
-    uint16_t temp_time = READ_16_BITS(time[0],time[1]);
-
-    if(option == 's')
-    {
-        for(i = 0;i <= 4;i++)
-        {
-            ret_value |= 1<<i;
-        }
-        ret_value = (ret_value & temp_time) * 2;
-    }
-    else if(option == 'm')
-    {
-        for(i = 5;i <= 10;i++)
-        {
-            ret_value |= 1<<i;
-        }
-        ret_value = (ret_value & temp_time) >> 5;
-    }
-    else if (option == 'h')
-    {          
-        for(i = 11;i <= 15;i++)
-        {
-            ret_value |= 1<<i;
-        }
-        ret_value = (ret_value & temp_time) >> 11;
-    }
-    return ret_value;
-}
-
-static uint16_t modified_date(uint8_t* date,uint8_t option)
-{
-    uint8_t i = 0;
-    uint16_t ret_value = 0;
-    uint16_t temp_date = READ_16_BITS(date[0],date[1]);
-
-    if(option == 'D')
-    {
-        for(i = 0;i <= 4;i++)
-        {
-            ret_value |= 1<<i;
-        }
-        ret_value = ret_value & temp_date;
-    }
-    else if (option == 'M')
-    {          
-        for(i = 5;i <= 8;i++)
-        {
-            ret_value |= 1<<i;
-        }
-        ret_value = (ret_value & temp_date) >> 5;
-    }
-    else if (option == 'Y')
-    {          
-        for(i = 9;i <= 15;i++)
-        {
-            ret_value |= 1<<i;
-        }
-        ret_value = (ret_value & temp_date) >> 9;
-        ret_value = ret_value + 1980;
-    }
-    return ret_value;
 }

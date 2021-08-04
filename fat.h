@@ -4,10 +4,17 @@
 /*******************************************************************************
 * API
 ******************************************************************************/
-#define READ_12_BITS_ODD(a,b)     (((a)>>4) + ((b)<<4))
-#define READ_12_BITS_EVEN(a,b)    ((a) + (((b) & 0x0F) << 8))
-#define READ_16_BITS(a,b)       ((b<<8) + (a))
-#define READ_32_BITS(a,b,c,d)   ((d<<24) + (c<<16) + (b<<8) + (a))
+#define READ_12_BITS_ODD(a,b)       (((a)>>4) + ((b)<<4))
+#define READ_12_BITS_EVEN(a,b)      ((a) + (((b) & 0x0F) << 8))
+#define READ_16_BITS(a,b)           ((b<<8) + (a))
+#define READ_32_BITS(a,b,c,d)       ((d<<24) + (c<<16) + (b<<8) + (a))
+#define TIME_SECOND(a)              (((a) & 0x001F) * 2)
+#define TIME_MINUTE(a)              (((a) & 0x07E0) >> 5)
+#define TIME_HOUR(a)                (((a) & 0xF800) >> 11)
+#define DATE_DAY(a)                 ((a) & 0x001F)
+#define DATE_MONTH(a)               (((a) & 0x01E0) >> 5)
+#define DATE_YEAR(a)                ((((a) & 0xFE00) >> 9) + 1980)
+
 
 enum fat_read_result
 {
@@ -36,7 +43,6 @@ typedef struct entry
 } fat_entry;
 
 bool fat_init(uint8_t* file_path,fat_entry** headTemp);
-bool fat_read_option(uint32_t option,fat_entry** headTemp);
 uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file);
 
 #endif /* _FAT_H_ */

@@ -399,7 +399,13 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file)
                 next_cluster = READ_32_BITS(buff_FAT[fat_index],buff_FAT[fat_index+1],buff_FAT[fat_index+2],buff_FAT[fat_index+3]);
             }
             buff = realloc(buff,sizeof(uint8_t)*fat.bytes_per_sector*fat.sectors_per_cluster*count);
+            if(buff == NULL)
+            {
+                printf("\nunable to allocate memory!");
+                exit(1);
+            }
             total_bytes_read += kmc_read_multi_sector(first_sector,fat.sectors_per_cluster,buff + fat.bytes_per_sector*fat.sectors_per_cluster);
+            
         }
 
         if(temp->attribute == 0x10)
