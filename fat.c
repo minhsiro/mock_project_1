@@ -143,7 +143,7 @@ static void fat_read_root(void)
         if(buff_root == NULL)
         {
             printf("\nunable to allocate memory");
-            exit(EXIT_FAILURE);
+            exit(1);
         }
         total_bytes_read = kmc_read_multi_sector(root_first_index,root_size,buff_root);
     }
@@ -153,14 +153,14 @@ static void fat_read_root(void)
         if(buff_FAT == NULL)
         {
             printf("\nunable to allocate memory!");
-            exit(EXIT_FAILURE);
+            exit(1);
         }
         kmc_read_multi_sector(fat1_first_index,fat.fat_size,buff_FAT);
         buff_root = (uint8_t*)malloc(sizeof(uint8_t)*fat.bytes_per_sector*fat.sectors_per_cluster*count);
         if(buff_root == NULL)
         {
             printf("\nunable to allocate memory!");
-            exit(EXIT_FAILURE);
+            exit(1);
         }
         current_cluster = root_first_cluster;
         fat_index = current_cluster * 4;
@@ -177,7 +177,7 @@ static void fat_read_root(void)
             if(buff_root == NULL)
             {
                 printf("\nunable to allocate memory!");
-                exit(EXIT_FAILURE);
+                exit(1);
             }
             total_bytes_read += kmc_read_multi_sector(first_sector,fat.sectors_per_cluster,buff_root + fat.bytes_per_sector*fat.sectors_per_cluster);
             next_cluster = READ_32_BITS(buff_FAT[fat_index],buff_FAT[fat_index+1],buff_FAT[fat_index+2],buff_FAT[fat_index+3]);
@@ -209,7 +209,7 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
             if(new_entry == NULL)
             {
                 printf("\nunable to allocate memory");
-                exit(EXIT_FAILURE);
+                exit(1);
             }
             temp = entry_head;
             new_entry->next = NULL;
@@ -230,7 +230,7 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
             {
                 j = i;
                 LFN_entries = buff[j] & 0x1F; /* clear bits 5->7, keep bits 0->4 */ 
-                i = i + LFN_entries * 32;
+                i = i + LFN_entries * 32; /* move i to SFN */
                 while(LFN_entries > 0)
                 {
                     for(k = 0x01;k < 0x0A;k++)
@@ -272,34 +272,34 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
                 }
             }
 
-            if (buff[i + 0x0B] != 0x0F)
+            // if (buff[i + 0x0B] != 0x0F)
+            // {
+            strncpy(new_entry->SFN,&buff[i + 0x00],8);
+            new_entry->SFN[8] = '\0';
+            strncpy(new_entry->extension,&buff[i+0x08],3);
+            new_entry->extension[3] = '\0';
+            if(strcmp(new_entry->LFN,"") == 0)
             {
-                strncpy(new_entry->SFN,&buff[i + 0x00],8);
-                new_entry->SFN[8] = '\0';
-                strncpy(new_entry->extension,&buff[i+0x08],3);
-                new_entry->extension[3] = '\0';
-                if(strcmp(new_entry->LFN,"") == 0)
-                {
-                    strncpy(new_entry->LFN,new_entry->SFN,8);
-                    new_entry->LFN[8] = '\0';
-                }
-                new_entry->attribute = buff[i + 0x0b];
-                strncpy(new_entry->high_first_cluster,&buff[i + 0x14],2);
-                strncpy(new_entry->modified_time,&buff[i + 0x16],2);
-                strncpy(new_entry->modified_date,&buff[i + 0x18],2);
-                strncpy(new_entry->low_first_cluster,&buff[i + 0x1A],2);
-                /* don't use "strncpy(new_entry->size,&buff[i+0x1C],4);" here, it will cause undefined behavior */
-                new_entry->size[0] = buff[i + 0x1C];
-                new_entry->size[1] = buff[i + 0x1D];
-                new_entry->size[2] = buff[i + 0x1E];
-                new_entry->size[3] = buff[i + 0x1F];
+                strncpy(new_entry->LFN,new_entry->SFN,8);
+                new_entry->LFN[8] = '\0';
             }
+            new_entry->attribute = buff[i + 0x0b];
+            strncpy(new_entry->high_first_cluster,&buff[i + 0x14],2);
+            strncpy(new_entry->modified_time,&buff[i + 0x16],2);
+            strncpy(new_entry->modified_date,&buff[i + 0x18],2);
+            strncpy(new_entry->low_first_cluster,&buff[i + 0x1A],2);
+            /* don't use "strncpy(new_entry->size,&buff[i+0x1C],4);" here, it will cause undefined behavior */
+            new_entry->size[0] = buff[i + 0x1C];
+            new_entry->size[1] = buff[i + 0x1D];
+            new_entry->size[2] = buff[i + 0x1E];
+            new_entry->size[3] = buff[i + 0x1F];
+            // }
         }
         i+=32;
     }
 }
 
-uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32_t* byte_count)
+uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file)
 {
     uint8_t retValue = 0;
     uint8_t* buff = NULL;
@@ -323,7 +323,7 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
     {
         fat_read_root();
         *headTemp = entry_head;
-        retValue = 0;
+        retValue = FAT_ROOT;
     }
     else
     {
@@ -331,14 +331,14 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
         if(buff_FAT == NULL)
         {
             printf("\nunable to allocate memory!");
-            exit(EXIT_FAILURE);
+            exit(1);
         }
         kmc_read_multi_sector(fat1_first_index,fat.fat_size,buff_FAT);
         buff = (uint8_t*)malloc(sizeof(uint8_t)*fat.bytes_per_sector*fat.sectors_per_cluster*count);
         if(buff == NULL)
         {
             printf("\nunable to allocate memory!");
-            exit(EXIT_FAILURE);
+            exit(1);
         }
 
         /* read next cluster according to FAT12 or FAT 16 or FAT 32 */
@@ -405,12 +405,11 @@ uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32
         if(temp->attribute == 0x10)
         {
             fat_read_entries(buff,total_bytes_read);
-            retValue = 1;
+            retValue = FAT_SUB_DIR;
         }
         else if (temp->attribute == 0x00)
         {
-            *byte_count = total_bytes_read;
-            retValue = 2;
+            retValue = FAT_FILE;
         }
         *headTemp = entry_head;
         *buff_file = buff;

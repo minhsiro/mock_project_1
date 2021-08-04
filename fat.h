@@ -9,6 +9,13 @@
 #define READ_16_BITS(a,b)       ((b<<8) + (a))
 #define READ_32_BITS(a,b,c,d)   ((d<<24) + (c<<16) + (b<<8) + (a))
 
+enum fat_read_result
+{
+    FAT_ROOT = 0,
+    FAT_SUB_DIR = 1,
+    FAT_FILE = 2
+};
+
 typedef struct entry
 {
     uint8_t LFN[256];                       /* 3 parts                  */
@@ -30,6 +37,6 @@ typedef struct entry
 
 bool fat_init(uint8_t* file_path,fat_entry** headTemp);
 bool fat_read_option(uint32_t option,fat_entry** headTemp);
-uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file,uint32_t* byte_count);
+uint8_t fat_read(uint32_t option,fat_entry** headTemp,uint8_t** buff_file);
 
 #endif /* _FAT_H_ */

@@ -14,7 +14,7 @@
 ******************************************************************************/
 static void clear();
 static void read_dir(fat_entry* headTemp);
-static void read_file(uint8_t* buff,uint32_t byte_count);
+static void read_file(uint8_t* buff,uint32_t size);
 static uint16_t modified_date(uint8_t* date,uint8_t option);
 static uint16_t modified_time(uint8_t* time,uint8_t option);
 
@@ -31,6 +31,7 @@ void menu(void)
     uint8_t k = 0;
     uint8_t name[9];
     uint8_t extension[4];
+    uint32_t size = 0;
 
     printf("nhap ten file (\"floppy.img\"): ");
     scanf("%49s",file_path);
@@ -46,7 +47,7 @@ void menu(void)
     while(condition)
     {
         temp = entry_head;
-        printf("select (or input a value out of range to exit): ");
+        printf("select: ");
         scanf("%u",&option);
         clear();
         for(i=0;i<option;i++)
@@ -55,26 +56,27 @@ void menu(void)
         }
         strcpy(name,temp->SFN);
         strcpy(extension,temp->extension);
+        size = READ_32_BITS(temp->size[0],temp->size[1],temp->size[2],temp->size[3]);
 
-        k = fat_read(option,&entry_head,&buff,&byte_count);
-        if(k == 0)
+        k = fat_read(option,&entry_head,&buff);
+        if(k == FAT_ROOT)
         {
             printf("folder: Root\n\n");
             read_dir(entry_head);
             // free(buff);
             // buff = NULL;
         }
-        else if (k == 1)
+        else if (k == FAT_SUB_DIR)
         {
             printf("folder: %s\n\n",name);
             read_dir(entry_head);
             free(buff);
             buff = NULL;
         }
-        else if (k == 2)
+        else if (k == FAT_FILE)
         {
             printf("file: %8s.%3s\n\n",name,extension);
-            read_file(buff,byte_count);
+            read_file(buff,size);
             free(buff);
             buff = NULL;
             condition = false;
@@ -93,10 +95,10 @@ static void clear(){
     #endif
 }
 
-static void read_file(uint8_t* buff,uint32_t byte_count)
+static void read_file(uint8_t* buff,uint32_t size)
 {
     uint16_t i = 0;
-    for(i = 0;i < byte_count;i++)
+    for(i = 0;i < size;i++)
     {
         if( (i >= 16) && (i % 16 == 0))
         {
@@ -160,15 +162,23 @@ static uint16_t modified_time(uint8_t* time,uint8_t option)
 {
     uint8_t i = 0;
     uint16_t ret_value = 0;
-    uint16_t tempTime = READ_16_BITS(time[0],time[1]);
+    uint16_t temp_time = READ_16_BITS(time[0],time[1]);
 
-    if(option == 'm')
+    if(option == 's')
+    {
+        for(i = 0;i <= 4;i++)
+        {
+            ret_value |= 1<<i;
+        }
+        ret_value = (ret_value & temp_time) * 2;
+    }
+    else if(option == 'm')
     {
         for(i = 5;i <= 10;i++)
         {
             ret_value |= 1<<i;
         }
-        ret_value = (ret_value & tempTime) >> 5;
+        ret_value = (ret_value & temp_time) >> 5;
     }
     else if (option == 'h')
     {          
@@ -176,7 +186,7 @@ static uint16_t modified_time(uint8_t* time,uint8_t option)
         {
             ret_value |= 1<<i;
         }
-        ret_value = (ret_value & tempTime) >> 11;
+        ret_value = (ret_value & temp_time) >> 11;
     }
     return ret_value;
 }
@@ -185,7 +195,7 @@ static uint16_t modified_date(uint8_t* date,uint8_t option)
 {
     uint8_t i = 0;
     uint16_t ret_value = 0;
-    uint16_t tempDate = READ_16_BITS(date[0],date[1]);
+    uint16_t temp_date = READ_16_BITS(date[0],date[1]);
 
     if(option == 'D')
     {
@@ -193,7 +203,7 @@ static uint16_t modified_date(uint8_t* date,uint8_t option)
         {
             ret_value |= 1<<i;
         }
-        ret_value = ret_value & tempDate;
+        ret_value = ret_value & temp_date;
     }
     else if (option == 'M')
     {          
@@ -201,7 +211,7 @@ static uint16_t modified_date(uint8_t* date,uint8_t option)
         {
             ret_value |= 1<<i;
         }
-        ret_value = (ret_value & tempDate) >> 5;
+        ret_value = (ret_value & temp_date) >> 5;
     }
     else if (option == 'Y')
     {          
@@ -209,7 +219,7 @@ static uint16_t modified_date(uint8_t* date,uint8_t option)
         {
             ret_value |= 1<<i;
         }
-        ret_value = (ret_value & tempDate) >> 9;
+        ret_value = (ret_value & temp_date) >> 9;
         ret_value = ret_value + 1980;
     }
     return ret_value;
