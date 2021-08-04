@@ -229,7 +229,7 @@ void fat_read_entries(uint8_t* buff,uint32_t bytes_count)
             if(buff[i + 0x0B] == 0x0F) /* long filename */
             {
                 j = i;
-                LFN_entries = buff[j] & 0x1F;
+                LFN_entries = buff[j] & 0x1F; /* clear bits 5->7, keep bits 0->4 */ 
                 i = i + LFN_entries * 32;
                 while(LFN_entries > 0)
                 {

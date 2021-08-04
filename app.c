@@ -132,20 +132,18 @@ static void read_dir(fat_entry* headTemp)
             {
                 printf("%hhu   -   %8s.%3s        %hu/%hu/%hu 0%hu:0%hu               %u", \
                 index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
-                printf("\n");
             }
             else if (hour < 10)
             {
                 printf("%hhu   -   %8s.%3s        %hu/%hu/%hu 0%hu:%hu               %u", \
                 index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
-                printf("\n");
             }
             else if (minutes < 10)
             {
                 printf("%hhu   -   %8s.%3s        %hu/%hu/%hu %hu:0%hu               %u", \
                 index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
-                printf("\n");
             }
+            printf("\n");
         }
         else
         {
