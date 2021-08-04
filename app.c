@@ -7,15 +7,36 @@
 #include <stdbool.h>
 #include <string.h>
 #include "fat.h"
+
+/*******************************************************************************
+* Definitions
+******************************************************************************/
 #define MAX_LENGTH 50
+
+/*******************************************************************************
+* Prototypes
+******************************************************************************/
+
+/** @brief This function will clear console screen.
+ */
+static void clear();
+
+
+/** @brief This function will print to the screen a list of entries.
+ * @param head_temp - start of the linked list.
+ */
+static void read_dir(fat_entry* head_temp);
+
+
+/** @brief This function will print to the screen content of a file.
+ * @param buff - an array that stores data.
+ * @param size - number of bytes in the file.
+ */
+static void read_file(uint8_t* buff,uint32_t size);
 
 /*******************************************************************************
 * Code
 ******************************************************************************/
-static void clear();
-static void read_dir(fat_entry* headTemp);
-static void read_file(uint8_t* buff,uint32_t size);
-
 void menu(void)
 {
     uint8_t file_path[MAX_LENGTH];
@@ -23,6 +44,7 @@ void menu(void)
     uint8_t* buff = NULL;
     fat_entry* entry_head = NULL;
     fat_entry* temp = NULL;
+    uint8_t boot_info[512];
     uint32_t byte_count = 0;
     uint32_t option = 0;
     uint32_t i = 0;
@@ -33,13 +55,14 @@ void menu(void)
 
     printf("nhap ten file (\"floppy.img\"): ");
     scanf("%49s",file_path);
-    if(fat_init(&file_path[0],&entry_head))
+    if(fat_init(&file_path[0],&entry_head,&boot_info[0]))
     {
+        printf("file opened successfully.\n");
         read_dir(entry_head);
     }
     else
     {
-        printf("failed to open!\n");
+        printf("failed to open file!\n");
         return;
     }
     while(condition)
@@ -59,29 +82,36 @@ void menu(void)
         k = fat_read(option,&entry_head,&buff);
         if(k == FAT_ROOT)
         {
-            printf("folder: Root\n\n");
+            printf("Root directory\n\n");
             read_dir(entry_head);
-            free(buff);
-            buff = NULL;
         }
         else if (k == FAT_SUB_DIR)
         {
             printf("folder: %s\n\n",name);
             read_dir(entry_head);
-            free(buff);
-            buff = NULL;
         }
         else if (k == FAT_FILE)
         {
             printf("file: %8s.%3s\n\n",name,extension);
             read_file(buff,size);
-            free(buff);
-            free(entry_head);
-            buff = NULL;
-            entry_head = NULL;
             condition = false;
         }
-        
+        free(buff);
+        buff = NULL;
+
+        if(condition == false)
+        {
+            if(fat_deinit(&file_path[0]))
+            {
+                free(entry_head);
+                entry_head = NULL;
+                printf("file closed successfully.");
+            }
+            else
+            {
+                printf("failed to close file");
+            }
+        }
     }
 }
 
@@ -108,7 +138,7 @@ static void read_file(uint8_t* buff,uint32_t size)
     }
     printf("\n");
 }
-static void read_dir(fat_entry* headTemp)
+static void read_dir(fat_entry* head_temp)
 {
     uint16_t index = 0;
     uint16_t day = 0;
@@ -117,16 +147,20 @@ static void read_dir(fat_entry* headTemp)
     uint16_t hour = 0;
     uint16_t minutes = 0;
     uint32_t size = 0;
-    fat_entry* temp = headTemp;
+    uint16_t modified_time = 0;
+    uint16_t modified_date = 0;
+    fat_entry* temp = head_temp;
 
     printf("No      Name                  date & time                 size\n");
     while(temp != NULL)
     {
-        day = DATE_DAY(READ_16_BITS(temp->modified_date[0],temp->modified_date[1]));
-        month = DATE_MONTH(READ_16_BITS(temp->modified_date[0],temp->modified_date[1]));
-        year = DATE_YEAR(READ_16_BITS(temp->modified_date[0],temp->modified_date[1]));
-        hour = TIME_HOUR(READ_16_BITS(temp->modified_time[0],temp->modified_time[1]));
-        minutes = TIME_MINUTE(READ_16_BITS(temp->modified_time[0],temp->modified_time[1]));
+        modified_time = READ_16_BITS(temp->modified_time[0],temp->modified_time[1]);
+        modified_date = READ_16_BITS(temp->modified_date[0],temp->modified_date[1]);
+        day = DATE_DAY(modified_date);
+        month = DATE_MONTH(modified_date);
+        year = DATE_YEAR(modified_date);
+        hour = TIME_HOUR(modified_time);
+        minutes = TIME_MINUTE(modified_time);
         size = READ_32_BITS(temp->size[0],temp->size[1],temp->size[2],temp->size[3]);
         if(minutes < 10 || hour < 10)
         {

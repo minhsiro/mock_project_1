@@ -72,3 +72,14 @@ int32_t kmc_read_multi_sector(uint32_t index, uint32_t num, uint8_t* buff)
     }
     return ret_value;
 }
+
+bool kmc_close_file(uint8_t* buff)
+{
+    bool condition = true;
+
+    if(fclose(floppy) != 0)
+    {
+        condition = false;
+    }
+    return condition;
+}
