@@ -42,6 +42,7 @@ typedef struct
 /*******************************************************************************
 * Prototypes
 ******************************************************************************/
+
 /** @brief This function is used to read boot info data from disk into an array
  *  and use those datas to set value to some global variables.
  */
@@ -210,6 +211,7 @@ void read_entries(uint8_t* buff,uint32_t bytes_count)
     uint8_t LFN_entries = 0;
     fat_entry* temp = NULL;
     fat_entry* new_entry = NULL;
+
     free_entries(&entry_head);
     while(i < bytes_count)
     {
@@ -241,7 +243,7 @@ void read_entries(uint8_t* buff,uint32_t bytes_count)
             if(buff[i + 0x0B] == 0x0F) /* long filename */
             {
                 j = i;
-                LFN_entries = buff[j] & 0x1F; /* clear bits 5->7, keep bits 0->4 */ 
+                LFN_entries = buff[j] & 0x1F; /* clear bits 5->7, keep bits 0->4 */
                 i = i + LFN_entries * 32; /* move i to SFN */
                 while(LFN_entries > 0)
                 {
@@ -304,7 +306,7 @@ void read_entries(uint8_t* buff,uint32_t bytes_count)
             new_entry->size[2] = buff[i + 0x1E];
             new_entry->size[3] = buff[i + 0x1F];
         }
-        i+=32;
+        i += 32;
     }
 }
 

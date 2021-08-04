@@ -166,24 +166,24 @@ static void read_dir(fat_entry* head_temp)
         {
             if(minutes < 10 && hour < 10)
             {
-                printf("%hhu   -   %8s.%3s        %hu/%hu/%hu 0%hu:0%hu               %u", \
+                printf("%hhu   -   %8s.%3s        %hu/%hu/%hu 0%hu:0%hu               %u",\
                 index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
             }
             else if (hour < 10)
             {
-                printf("%hhu   -   %8s.%3s        %hu/%hu/%hu 0%hu:%hu               %u", \
+                printf("%hhu   -   %8s.%3s        %hu/%hu/%hu 0%hu:%hu               %u",\
                 index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
             }
             else if (minutes < 10)
             {
-                printf("%hhu   -   %8s.%3s        %hu/%hu/%hu %hu:0%hu               %u", \
+                printf("%hhu   -   %8s.%3s        %hu/%hu/%hu %hu:0%hu               %u",\
                 index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
             }
             printf("\n");
         }
         else
         {
-            printf("%hhu   -   %8s.%3s        %hu/%hu/%hu %hu:%hu                %u", \
+            printf("%hhu   -   %8s.%3s        %hu/%hu/%hu %hu:%hu                %u",\
             index,temp->SFN,temp->extension,day,month,year,hour,minutes,size);
             printf("\n");
         }
