@@ -22,22 +22,40 @@ enum Fat_Read_Result
     FAT_FILE = 2
 };
 
+typedef struct
+{
+    uint8_t jump[3];                            /* 0x00-0x02 (0-2)                          */
+    uint8_t OEM_name[8];                        /* 0x03-0x0A (3-10)                         */
+    uint16_t bytes_per_sector;                  /* 0x0B-0x0C (11-12)                        */
+    uint8_t sectors_per_cluster;                /* 0x0D (13)                                */
+    uint16_t size_of_reserved_area;             /* 0x0E-0x0F (14-15)                        */
+    uint32_t numbers_of_fats;                   /* 0x10 (16)                                */
+    uint16_t max_root_entries;                  /* 0x11-0x12 (17-18), 0 for 32              */
+    uint32_t total_sectors;                     /* 0x13-0x14 (19-20), 0 for 32 (0x20-0x23)  */
+    uint8_t media_type;                         /* 0x15 (21)                                */
+    uint32_t fat_size;                          /* 0x16-0x17 (22-23), 0 for 32 (0x24-0x27)  */
+    uint16_t track_size;                        /* 0x18-0x19 (24-25)                        */
+    uint16_t number_of_heads;                   /* 0x1A-0x1B (26-27)                        */
+    uint16_t number_of_hidden_sectors;          /* 0x1C-0x1D (28-29)                        */
+    uint8_t signature[2];                       /* 0x1FE-0x1FF (510-511)                    */
+} fat_boot_info_struct_t;
+
 typedef struct entry
 {
-    uint8_t LFN[256];                       /*      3 parts               */
-    uint8_t SFN[9];                         /*      0x00-0x07 (0-7)       */
-    uint8_t extension[4];                   /*      0x08-0x0A (8-10)      */
-    uint8_t attribute;                      /*      0x0B (11)             */
-    uint8_t reserved;                       /*      0x0C (12)             */
-    uint8_t file_creation_time;             /*      0x0D (13)             */
-    uint8_t creation_time[2];               /*      0x0E-0x0F (14-15)     */
-    uint8_t creation_date[2];               /*      0x10-0x11 (16-17)     */
-    uint8_t access_date [2];                /*      0x12-0x13 (18-19)     */
-    uint8_t high_first_cluster[2];          /*      0x14-0x15 (20-21)     */
-    uint8_t modified_time[2];               /*      0x16-0x17 (22-23)     */
-    uint8_t modified_date[2];               /*      0x17-0x18 (24-25)     */
-    uint8_t low_first_cluster[2];           /*      0x1A-0x1B (26-27)     */
-    uint8_t size[4];                        /*      0x1C-0x1F (28-31)     */
+    uint8_t LFN[256];                           /*      3 parts               */
+    uint8_t SFN[9];                             /*      0x00-0x07 (0-7)       */
+    uint8_t extension[4];                       /*      0x08-0x0A (8-10)      */
+    uint8_t attribute;                          /*      0x0B (11)             */
+    uint8_t reserved;                           /*      0x0C (12)             */
+    uint8_t file_creation_time;                 /*      0x0D (13)             */
+    uint8_t creation_time[2];                   /*      0x0E-0x0F (14-15)     */
+    uint8_t creation_date[2];                   /*      0x10-0x11 (16-17)     */
+    uint8_t access_date [2];                    /*      0x12-0x13 (18-19)     */
+    uint8_t high_first_cluster[2];              /*      0x14-0x15 (20-21)     */
+    uint8_t modified_time[2];                   /*      0x16-0x17 (22-23)     */
+    uint8_t modified_date[2];                   /*      0x17-0x18 (24-25)     */
+    uint8_t low_first_cluster[2];               /*      0x1A-0x1B (26-27)     */
+    uint8_t size[4];                            /*      0x1C-0x1F (28-31)     */
     struct entry* next;
 } fat_entry;
 

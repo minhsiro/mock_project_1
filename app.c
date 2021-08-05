@@ -55,7 +55,7 @@ void menu(void)
 
     printf("nhap ten file (\"floppy.img\"): ");
     scanf("%49s",file_path);
-    if(fat_init(&file_path[0],&entry_head,&boot_info[0]))
+    if(fat_init(&file_path[0],&entry_head,&boot_info[0]) == true)
     {
         printf("file opened successfully.\n");
         read_dir(entry_head);
@@ -65,13 +65,14 @@ void menu(void)
         printf("failed to open file!\n");
         return;
     }
+
     while(condition)
     {
         temp = entry_head;
         printf("select: ");
         scanf("%u",&option);
         clear();
-        for(i=0;i<option;i++)
+        for(i = 0;i < option;i++)
         {
             temp = temp->next;
         }
@@ -101,7 +102,7 @@ void menu(void)
 
         if(condition == false)
         {
-            if(fat_deinit(&file_path[0]))
+            if(fat_deinit(&file_path[0]) == true)
             {
                 free(entry_head);
                 entry_head = NULL;
